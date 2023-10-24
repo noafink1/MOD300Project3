@@ -58,11 +58,11 @@ class Simulation():
         plt.figure(figsize=(6,6))
         plt.xlim(-1, self.nx_+1)
         plt.ylim(-1, self.ny_+1)
-        # xticks = np.arange(0, self.nx_+2, 1)
-        # yticks = np.arange(0, self.ny_+2, 1)
-        # plt.xticks(xticks)
-        # plt.yticks(yticks)
-        plt.scatter(H[:,0], H[:,1], color='blue', s=120)
+        xticks = np.arange(0, self.nx_+2, 1)
+        yticks = np.arange(0, self.ny_+2, 1)
+        plt.xticks(xticks)
+        plt.yticks(yticks)
+        plt.scatter(H[:,0], H[:,1], color='blue', s=60)
         plt.scatter(Z[:,0], Z[:,1], color='red', s=60)
         plt.plot([0, self.ny_], [0,0], linestyle='dashed', color='black')
         plt.plot([0, self.ny_], [self.nx_, self.nx_], linestyle='dashed', color='black')
@@ -75,26 +75,39 @@ class Simulation():
     def make_gif(self, name, n):
         frames = []
         for i in range(n):
-            H = self.Walkers[self.STATE == 0]
-            Z = self.Walkers[self.STATE == 1]
-            plt.clf()
-            plt.figure(figsize=(6,6))
-            plt.xlim(-1, self.nx_+1)
-            plt.ylim(-1, self.ny_+1)
-            plt.scatter(H[:,0], H[:,1], color='blue', s=120)
-            plt.scatter(Z[:,0], Z[:,1], color='red', s=60)
-            plt.plot([0, self.ny_], [0,0], linestyle='dashed', color='black')
-            plt.plot([0, self.ny_], [self.nx_, self.nx_], linestyle='dashed', color='black')
-            plt.plot([0,0], [0,self.ny_], linestyle='dashed', color='black')
-            plt.plot([self.nx_, self.ny_], [0, self.ny_], linestyle='dashed', color='black')
-            plt.grid()
-            fig = plt.gcf()
-            buf = io.BytesIO()
-            fig.savefig(buf, format='png', bbox_inches='tight')
-            img = Image.open(buf)
-            frames.append(img)
-        frames[0].save(name,save_all=True, append_images=frames[1:], optimize=False, duration=40, loop=0)
+            self.move_walkers()
+            if np.all(self.check_collision != 0):
+                self.set_zombie()
+
+            if i % 5 == 0:             
+                H = self.Walkers[self.STATE == 0]
+                Z = self.Walkers[self.STATE == 1]
+                plt.figure(figsize=(10,10))
+                plt.xlim(-1, self.nx_+1)
+                plt.ylim(-1, self.ny_+1)
+                xticks = np.arange(0, self.nx_+2, 1)
+                yticks = np.arange(0, self.ny_+2, 1)
+                plt.xticks(xticks)
+                plt.yticks(yticks)
+                plt.scatter(H[:,0], H[:,1], color='blue', s=60)
+                plt.scatter(Z[:,0], Z[:,1], color='red', s=60)
+                plt.plot([0, self.ny_], [0,0], linestyle='dashed', color='black')
+                plt.plot([0, self.ny_], [self.nx_, self.nx_], linestyle='dashed', color='black')
+                plt.plot([0,0], [0,self.ny_], linestyle='dashed', color='black')
+                plt.plot([self.nx_, self.ny_], [0, self.ny_], linestyle='dashed', color='black')
+                plt.title('Zombie simulation')
+                fig = plt.gcf()
+                buf = io.BytesIO()
+                fig.savefig(buf, format='png', bbox_inches='tight')
+                img = Image.open(buf)
+                frames.append(img)
+                plt.close()
+                if np.sum(self.STATE == 0) == 0:
+                    break
         
+        frames[0].save(name, save_all=True, append_images=frames[1:], optimize=True, duration=500, loop=0)
+        plt.close()
+        self.reset()
 
     def calculate_no_humans_and_zombies(self):
         return np.sum(self.STATE == 0), np.sum(self.STATE == 1)
