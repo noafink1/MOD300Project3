@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL import Image
+import io
 
 class Simulation():
     def __init__(self, 
@@ -19,10 +21,12 @@ class Simulation():
         self.no_humans = []
         self.no_zombies = []
         self.STATE = np.repeat(self.HUMAN, self.N_)
-        self.STATE[0] = self.ZOMBIE
         self.Walkers = np.random.randint(0, [self.nx_, self.ny_], size=(self.N_, 2))
         self.Old_Walkers = np.copy(self.Walkers)
         
+    def init_zombies(self, n):
+        self.STATE[0:n] = self.ZOMBIE
+    
     def check_illegal_move(self):
         wrong_place_x = np.logical_or(self.Walkers[:,0] < 0, self.Walkers[:,0] > self.nx_-1)
         wrong_place_y = np.logical_or(self.Walkers[:,1] < 0, self.Walkers[:,1] > self.ny_-1)
@@ -68,6 +72,30 @@ class Simulation():
         plt.grid()
         plt.show()
 
+    def make_gif(self, name, n):
+        frames = []
+        for i in range(n):
+            H = self.Walkers[self.STATE == 0]
+            Z = self.Walkers[self.STATE == 1]
+            plt.clf()
+            plt.figure(figsize=(6,6))
+            plt.xlim(-1, self.nx_+1)
+            plt.ylim(-1, self.ny_+1)
+            plt.scatter(H[:,0], H[:,1], color='blue', s=120)
+            plt.scatter(Z[:,0], Z[:,1], color='red', s=60)
+            plt.plot([0, self.ny_], [0,0], linestyle='dashed', color='black')
+            plt.plot([0, self.ny_], [self.nx_, self.nx_], linestyle='dashed', color='black')
+            plt.plot([0,0], [0,self.ny_], linestyle='dashed', color='black')
+            plt.plot([self.nx_, self.ny_], [0, self.ny_], linestyle='dashed', color='black')
+            plt.grid()
+            fig = plt.gcf()
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', bbox_inches='tight')
+            img = Image.open(buf)
+            frames.append(img)
+        frames[0].save(name,save_all=True, append_images=frames[1:], optimize=False, duration=40, loop=0)
+        
+
     def calculate_no_humans_and_zombies(self):
         return np.sum(self.STATE == 0), np.sum(self.STATE == 1)
     
@@ -83,7 +111,8 @@ class Simulation():
     def run_simulation(self, n):
         for i in range(n):
             self.move_walkers()
-            self.set_zombie()
+            if np.all(self.check_collision != 0):
+                self.set_zombie()
             self.no_humans.append(self.calculate_no_humans_and_zombies()[0])
             self.no_zombies.append(self.calculate_no_humans_and_zombies()[1])
             self.timestep.append(i)
