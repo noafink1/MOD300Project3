@@ -17,15 +17,16 @@ class Simulation():
         self.infection_probability_ = q
         self.HUMAN = 0
         self.ZOMBIE = 1
-        self.timestep = []
-        self.no_humans = []
-        self.no_zombies = []
+        self.no_humans = np.empty(0, dtype=int)    
+        self.no_zombies = np.empty(0, dtype=int)  
         self.STATE = np.repeat(self.HUMAN, self.N_)
         self.Walkers = np.random.randint(0, [self.nx_, self.ny_], size=(self.N_, 2))
         self.Old_Walkers = np.copy(self.Walkers)
         
     def init_zombies(self, n):
+        self.IO_ = n
         self.STATE[0:n] = self.ZOMBIE
+
     
     def check_illegal_move(self):
         wrong_place_x = np.logical_or(self.Walkers[:,0] < 0, self.Walkers[:,0] > self.nx_-1)
@@ -114,21 +115,19 @@ class Simulation():
     
     def reset(self):
         self.STATE = np.repeat(self.HUMAN, self.N_)
-        self.STATE[0] = self.ZOMBIE
+        self.init_zombies(self.IO_)
         self.Walkers = np.random.randint(0, [self.nx_, self.ny_], size=(self.N_, 2))
         self.Old_Walkers = np.copy(self.Walkers)
-        self.timestep = []
-        self.no_humans = []
-        self.no_zombies = []
+        self.no_humans = np.empty(0, dtype=int)
+        self.no_zombies = np.empty(0, dtype=int)
 
     def run_simulation(self, n):
         for i in range(n):
             self.move_walkers()
             if np.all(self.check_collision != 0):
                 self.set_zombie()
-            self.no_humans.append(self.calculate_no_humans_and_zombies()[0])
-            self.no_zombies.append(self.calculate_no_humans_and_zombies()[1])
-            self.timestep.append(i)
+            self.no_humans=np.append(self.no_humans,self.calculate_no_humans_and_zombies()[0])
+            self.no_zombies = np.append(self.no_zombies,self.calculate_no_humans_and_zombies()[1])
             # self.plot()
 
 
