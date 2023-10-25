@@ -91,16 +91,9 @@ class Simulation():
                 plt.figure(figsize=(10,10))
                 plt.xlim(-1, self.nx_+1)
                 plt.ylim(-1, self.ny_+1)
-<<<<<<< HEAD
                 plt.grid()
                 plt.xticks([])
                 plt.yticks([])
-=======
-                xticks = np.arange(0, self.nx_+2, 1)
-                yticks = np.arange(0, self.ny_+2, 1)
-                plt.xticks(xticks)
-                plt.yticks(yticks)
->>>>>>> 02a0109483cef380e67f1c67a4b95f5ced57ea23
                 plt.scatter(H[:,0], H[:,1], color='blue', s=60)
                 plt.scatter(Z[:,0], Z[:,1], color='red', s=60)
                 plt.plot([0, self.ny_], [0,0], linestyle='dashed', color='black')
@@ -116,17 +109,10 @@ class Simulation():
                 plt.close()
                 if np.sum(self.STATE == 0) == 0:
                     break
-<<<<<<< HEAD
         frames[0].save(f"{name}.gif", save_all=True, append_images=frames[1:], optimize=True, duration=500, loop=0)
         plt.close()
         self.reset()
 
-=======
-        
-        frames[0].save(name, save_all=True, append_images=frames[1:], optimize=True, duration=500, loop=0)
-        plt.close()
-        self.reset()
->>>>>>> 02a0109483cef380e67f1c67a4b95f5ced57ea23
 
     def calculate_no_humans_and_zombies(self):
         return np.sum(self.STATE == 0), np.sum(self.STATE == 1)
