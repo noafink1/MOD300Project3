@@ -6,13 +6,12 @@ import io
 class Simulation():
     def __init__(self, 
                 population_size, 
-                no_init_infected=1,
                 nx=50,
                 ny=50,
                 q=0.9,
                 p_death = 0.0):
         self.N_ = population_size
-        self.IO_ = no_init_infected
+        self.IO_ = 1
         self.nx_ = nx
         self.ny_ = ny
         self.infection_probability_ = q
@@ -145,14 +144,15 @@ class Simulation():
                 plt.grid()
                 plt.xticks([])
                 plt.yticks([])
-                plt.scatter(H[:,0], H[:,1], color='green', s=60)
-                plt.scatter(Z[:,0], Z[:,1], color='red', s=60)
-                plt.scatter(D[:,0], D[:,1], color='black', s=60)
+                scatter_H = plt.scatter(H[:,0], H[:,1], color='green', s=60, label='Humans')
+                scatter_Z = plt.scatter(Z[:,0], Z[:,1], color='red', s=60, label='Zombies')
+                scatter_DZ = plt.scatter(D[:,0], D[:,1], color='black', s=60, label='Dead Zombies')
                 plt.plot([0, self.ny_], [0,0], linestyle='dashed', color='black')
                 plt.plot([0, self.ny_], [self.nx_, self.nx_], linestyle='dashed', color='black')
                 plt.plot([0,0], [0,self.ny_], linestyle='dashed', color='black')
                 plt.plot([self.nx_, self.ny_], [0, self.ny_], linestyle='dashed', color='black')
                 plt.title('Zombie simulation')
+                plt.legend(handles=[scatter_H, scatter_Z, scatter_DZ], loc='upper left')
                 fig = plt.gcf()
                 buf = io.BytesIO()
                 fig.savefig(buf, format='png', bbox_inches='tight')
