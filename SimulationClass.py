@@ -23,6 +23,7 @@ class Simulation():
         self.no_zombies = np.empty(0, dtype=int)  
         self.no_dead_zombies = np.empty(0, dtype=int)
         self.beta = np.empty(0, dtype=float)
+        self.tau_death = np.empty(0, dtype=float)
         self.STATE = np.repeat(self.HUMAN, self.N_)
         self.Walkers = np.random.randint(0, [self.nx_, self.ny_], size=(self.N_, 2))
         self.Old_Walkers = np.copy(self.Walkers)
@@ -176,6 +177,12 @@ class Simulation():
 
         return -np.round(((curr_humans - self.no_humans[-1])*self.N_)/(curr_humans*curr_zombies), 3)
     
+    def calculate_tau_death(self):
+        if len(self.no_dead_zombies) < 2:
+            return 0
+
+        return 1/((self.no_dead_zombies[-1]-self.no_dead_zombies[-2])/self.no_zombies[-1])
+    
     def reset(self):
         self.STATE = np.repeat(self.HUMAN, self.N_)
         self.init_zombies(self.IO_)
@@ -185,8 +192,9 @@ class Simulation():
         self.no_zombies = np.empty(0, dtype=int)
         self.no_dead_zombies = np.empty(0, dtype=int)
         self.beta = np.empty(0, dtype=float)
+        self.tau_death = np.empty(0, dtype=float)
 
-    def run_simulation(self, n, calculate_beta=False, calculate_no_dead_zombies=False):
+    def run_simulation(self, n, calculate_beta=False, calculate_no_dead_zombies=False, calculate_tau_death=False):
         for i in range(n):
             
             if calculate_no_dead_zombies:
@@ -203,6 +211,9 @@ class Simulation():
 
             if i >= 1 and calculate_beta:
                 self.beta = np.append(self.beta, self.calculate_beta())
+
+            if i >= 1 and calculate_tau_death:
+                self.tau_death = np.append(self.tau_death, self.calculate_tau_death())
 
             # self.plot()
 
