@@ -27,6 +27,8 @@ class Simulation():
         self.STATE = np.repeat(self.HUMAN, self.N_)
         self.Walkers = np.random.randint(0, [self.nx_, self.ny_], size=(self.N_, 2))
         self.Old_Walkers = np.copy(self.Walkers)
+
+        self.infection_probability_list = np.full(population_size, q)
         
     def init_zombies(self, n):
         self.IO_ = n
@@ -69,12 +71,6 @@ class Simulation():
         collision_mask = np.any(matches, axis=0)
         
         return collision_mask
-        
-        #_______OLD CODE_______
-        # living_zombie_array = self.Walkers[self.STATE == self.ZOMBIE]
-        # match_mask = np.all(living_zombie_array[:, None, :] == self.Walkers, axis=-1)
-        # zombie_collision_with_zombies = np.any(match_mask, axis=0)
-        # return np.logical_xor(zombie_collision_with_zombies, self.STATE)
     
     def set_zombie(self):
         collision = self.check_collision()
@@ -85,18 +81,28 @@ class Simulation():
 
             self.STATE = np.where(condition2 & condition1 & collision, self.ZOMBIE, self.STATE)
 
-        #___ OLD CODE ___
-        # random = np.around(np.random.uniform(0.0, 1.0, self.N_), 2)
-        # condition1 = random <= self.infection_probability_
-        # condition2 = self.check_collision() == 1
-        # self.STATE = np.where(condition1 & condition2, self.ZOMBIE, self.STATE)
-
     def check_if_zombies_die(self):
         if self.p_death != 0:
             random = np.around(np.random.uniform(0.0, 1.0, self.N_), 2)
             condition1 = random <= self.p_death
             condition2 = self.STATE == self.ZOMBIE
             self.STATE = np.where(condition1 & condition2, self.DEAD_ZOMBIE, self.STATE)
+
+    def check_if_human_survives_and_zombie_dies(self):
+        collision = self.check_collision()
+        if np.any(collision):
+            random = np.around(np.random.uniform(0.0, 1.0, self.N_), 2)
+            condition1 = (random <= self.infection_probability_)
+            condition2 = (self.STATE == 0)
+
+            condition3 = (random > self.infection_probability_)
+            condition4 = (self.STATE == 1)
+
+            self.STATE = np.where(condition2 & condition1 & collision, self.ZOMBIE, self.STATE)
+            self.STATE = np.where(condition4 & condition3 & collision, self.HUMAN, self.STATE)
+
+
+
 
     def plot(self):
         H = self.Walkers[self.STATE == self.HUMAN]
@@ -167,22 +173,16 @@ class Simulation():
 
 
     def calculate_no_humans_and_zombies(self):
-        return np.sum(self.STATE == self.HUMAN), np.sum(self.STATE == self.ZOMBIE)
+        return np.sum(self.STATE == self.HUMAN), np.sum(self.STATE == self.ZOMBIE), np.sum(self.STATE == self.DEAD_ZOMBIE)
     
     def calculate_beta(self):
-        curr_humans, curr_zombies = self.calculate_no_humans_and_zombies()
+        curr_humans, curr_zombies, _ = self.calculate_no_humans_and_zombies()
 
         if curr_humans == 0 or curr_zombies == 0:
             return 0
 
-        return -np.round(((curr_humans - self.no_humans[-1])*self.N_)/(curr_humans*curr_zombies), 3)
-    
-    def calculate_tau_death(self):
-        if len(self.no_dead_zombies) < 2:
-            return 0
+        return -np.round(((self.no_humans[-1] - self.no_humans[-2])*self.N_)/(self.no_humans[-1]*self.no_zombies[-1]), 3)
 
-        return 1/((self.no_dead_zombies[-1]-self.no_dead_zombies[-2])/self.no_zombies[-1])
-    
     def reset(self):
         self.STATE = np.repeat(self.HUMAN, self.N_)
         self.init_zombies(self.IO_)
@@ -194,7 +194,9 @@ class Simulation():
         self.beta = np.empty(0, dtype=float)
         self.tau_death = np.empty(0, dtype=float)
 
-    def run_simulation(self, n, calculate_beta=False, calculate_no_dead_zombies=False, calculate_tau_death=False):
+        self.infection_probability_list = np.full(self.N_, self.infection_probability_)
+
+    def run_simulation(self, n, calculate_beta=False, calculate_no_dead_zombies=False):
         for i in range(n):
             
             if calculate_no_dead_zombies:
@@ -209,12 +211,7 @@ class Simulation():
             self.set_zombie()
 
 
-            if i >= 1 and calculate_beta:
+            if i > 0 and calculate_beta:
                 self.beta = np.append(self.beta, self.calculate_beta())
-
-            if i >= 1 and calculate_tau_death:
-                self.tau_death = np.append(self.tau_death, self.calculate_tau_death())
-
-            # self.plot()
 
         
