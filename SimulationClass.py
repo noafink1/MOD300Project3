@@ -27,9 +27,16 @@ class Simulation():
         self.STATE = np.repeat(self.HUMAN, self.N_)
         self.Walkers = np.random.randint(0, [self.nx_, self.ny_], size=(self.N_, 2))
         self.Old_Walkers = np.copy(self.Walkers)
+        self.immunity_rate = 0.0
+        self.immunity_list = np.zeros(self.N_,dtype=bool)
+        self.num_of_immune = 0
 
-        self.infection_probability_list = np.full(population_size, q)
-        
+    def set_immunity(self, immunity_rate):
+        self.immunity_rate = immunity_rate
+        num_of_immune = int((self.N_-self.IO_) * immunity_rate)
+        self.num_of_immune = num_of_immune
+        self.immunity_list[self.IO_:self.IO_+num_of_immune] = True
+
     def init_zombies(self, n):
         self.IO_ = n
         self.STATE[0:n] = self.ZOMBIE
@@ -69,7 +76,6 @@ class Simulation():
         np.fill_diagonal(matches, False)
 
         collision_mask = np.any(matches, axis=0)
-        
         return collision_mask
     
     def set_zombie(self):
@@ -77,9 +83,10 @@ class Simulation():
         if np.any(collision):
             random = np.around(np.random.uniform(0.0, 1.0, self.N_), 2)
             condition1 = (random <= self.infection_probability_)
-            condition2 = (self.STATE == 0)
+            condition2 = (self.STATE == self.HUMAN)
+            condition3 = (self.immunity_list == False)
 
-            self.STATE = np.where(condition2 & condition1 & collision, self.ZOMBIE, self.STATE)
+            self.STATE = np.where(condition1 & condition2 & condition3 & collision, self.ZOMBIE, self.STATE)
 
     def check_if_zombies_die(self):
         if self.p_death != 0:
@@ -87,20 +94,6 @@ class Simulation():
             condition1 = random <= self.p_death
             condition2 = self.STATE == self.ZOMBIE
             self.STATE = np.where(condition1 & condition2, self.DEAD_ZOMBIE, self.STATE)
-
-    def check_if_human_survives_and_zombie_dies(self):
-        collision = self.check_collision()
-        if np.any(collision):
-            random = np.around(np.random.uniform(0.0, 1.0, self.N_), 2)
-            condition1 = (random <= self.infection_probability_)
-            condition2 = (self.STATE == 0)
-
-            condition3 = (random > self.infection_probability_)
-            condition4 = (self.STATE == 1)
-
-            self.STATE = np.where(condition2 & condition1 & collision, self.ZOMBIE, self.STATE)
-            self.STATE = np.where(condition4 & condition3 & collision, self.HUMAN, self.STATE)
-
 
 
 
@@ -145,6 +138,7 @@ class Simulation():
                 H = self.Walkers[self.STATE == self.HUMAN]
                 Z = self.Walkers[self.STATE == self.ZOMBIE]
                 D = self.Walkers[self.STATE == self.DEAD_ZOMBIE]
+                I = self.Walkers[self.immunity_list == True]
                 plt.figure(figsize=(10,10))
                 plt.xlim(-1, self.nx_+1)
                 plt.ylim(-1, self.ny_+1)
@@ -153,13 +147,14 @@ class Simulation():
                 plt.yticks([])
                 scatter_H = plt.scatter(H[:,0], H[:,1], color='green', s=60, label='Humans')
                 scatter_Z = plt.scatter(Z[:,0], Z[:,1], color='red', s=60, label='Zombies')
-                scatter_DZ = plt.scatter(D[:,0], D[:,1], color='black', s=60, label='Dead Zombies')
+                scatter_DZ = plt.scatter(D[:,0], D[:,1], marker="X",color='black', s=70, label='Dead Zombies')
+                scatter_I = plt.scatter(I[:,0], I[:,1], color='blue', s=60, label='Immune')
                 plt.plot([0, self.ny_], [0,0], linestyle='dashed', color='black')
                 plt.plot([0, self.ny_], [self.nx_, self.nx_], linestyle='dashed', color='black')
                 plt.plot([0,0], [0,self.ny_], linestyle='dashed', color='black')
                 plt.plot([self.nx_, self.ny_], [0, self.ny_], linestyle='dashed', color='black')
                 plt.title('Zombie simulation')
-                plt.legend(handles=[scatter_H, scatter_Z, scatter_DZ], loc='upper left')
+                plt.legend(handles=[scatter_H, scatter_Z, scatter_DZ, scatter_I], loc='upper left')
                 fig = plt.gcf()
                 buf = io.BytesIO()
                 fig.savefig(buf, format='png', bbox_inches='tight')
@@ -193,8 +188,9 @@ class Simulation():
         self.no_dead_zombies = np.empty(0, dtype=int)
         self.beta = np.empty(0, dtype=float)
         self.tau_death = np.empty(0, dtype=float)
-
-        self.infection_probability_list = np.full(self.N_, self.infection_probability_)
+        self.immunity_list = np.zeros(self.N_,dtype=bool)
+        self.set_immunity(self.immunity_rate)
+        
 
     def run_simulation(self, n, calculate_beta=False, calculate_no_dead_zombies=False):
         for i in range(n):
